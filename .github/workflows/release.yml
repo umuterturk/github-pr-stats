@@ -5,7 +5,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'  # Triggers the workflow on version tags, e.g., v1.0.0
+      - 'v*'
 
 jobs:
   build:
@@ -34,24 +34,24 @@ jobs:
       run: |
         pyinstaller --onefile prstats/pr_stats_calculator.py
 
-    - name: Archive the build output
+    - name: Archive the build output (Linux & macOS)
+      if: matrix.os != 'windows-latest'
       run: |
-        if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-          zip -r pr_stats_calculator_linux.zip dist/;
-        elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-          powershell Compress-Archive -Path dist/pr_stats_calculator.exe -DestinationPath pr_stats_calculator_windows.zip;
-        elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-          zip -r pr_stats_calculator_macos.zip dist/;
-        fi
+        zip -r pr_stats_calculator_${{ matrix.os }}.zip dist/
+
+    - name: Archive the build output (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        powershell Compress-Archive -Path dist\pr_stats_calculator.exe -DestinationPath pr_stats_calculator_windows.zip
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}-build
         path: |
-          pr_stats_calculator_linux.zip
+          pr_stats_calculator_ubuntu-latest.zip
           pr_stats_calculator_windows.zip
-          pr_stats_calculator_macos.zip
+          pr_stats_calculator_macos-latest.zip
 
   release:
     needs: build
@@ -67,7 +67,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          pr_stats_calculator_linux.zip
+          pr_stats_calculator_ubuntu.zip
           pr_stats_calculator_windows.zip
           pr_stats_calculator_macos.zip
       env:
