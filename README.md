@@ -30,9 +30,10 @@ This tool is particularly useful for teams and developers who want to gain insig
    cd github-pr-stats
    ```
 
-2. Install the required Python packages:
+2. Setup venv and install the required Python packages:
    ```bash
-   pip install -r requirements.txt
+   ./setup.sh
+   source venv/bin/activate
    ```
 
 ## Github permissions
@@ -44,6 +45,12 @@ To use the PR Approval Time Stats Calculator, run the script with the following 
 
 ```bash
 python pr_stats_calculator.py [OPTIONS] REPOSITORIES
+```
+
+Or you can grab the executable from the `dist` folder and run it directly.
+
+```bash
+./pr_stats_calculator [OPTIONS] REPOSITORIES
 ```
 
 ### Required Arguments

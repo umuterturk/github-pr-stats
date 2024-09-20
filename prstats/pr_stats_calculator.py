@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from prstats.csv_writer import CsvWriter
 from prstats.github_adapter import GitHubAdapter
 from prstats.pr_data_processor import PrDataProcessor
-from prstats.stats_calculator import PrStatsCalculator
+from prstats.stats_generator import PrStatsGenerator
 
 
 def parse_arguments():
@@ -49,6 +49,6 @@ if __name__ == "__main__":
     csv_writer = CsvWriter(file_name_prefix, raw_data_field_names, stats_field_names)
     github_adapter = GitHubAdapter(GITHUB_TOKEN, start_date_iso)
     pr_data_processor = PrDataProcessor()
-    pr_stats_calculator = PrStatsCalculator(REPOS, csv_writer, github_adapter, pr_data_processor, start_date)
+    pr_stats_calculator = PrStatsGenerator(REPOS, csv_writer, github_adapter, pr_data_processor, start_date)
 
     pr_stats_calculator.calculate_approval_time_stats_per_repo()
