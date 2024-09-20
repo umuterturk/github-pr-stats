@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.9'  # Replace '3.x' with your required Python version
 
     - name: Install dependencies
       run: |
@@ -38,6 +38,7 @@ jobs:
       if: matrix.os != 'windows-latest'
       run: |
         zip -r pr_stats_calculator_${{ matrix.os }}.zip dist/
+      continue-on-error: true
 
     - name: Archive the build output (Windows)
       if: matrix.os == 'windows-latest'
@@ -49,9 +50,7 @@ jobs:
       with:
         name: ${{ matrix.os }}-build
         path: |
-          pr_stats_calculator_ubuntu-latest.zip
-          pr_stats_calculator_windows.zip
-          pr_stats_calculator_macos-latest.zip
+          pr_stats_calculator_*.zip
 
   release:
     needs: build
@@ -61,14 +60,24 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v3
       with:
-        name: ${{ matrix.os }}-build
+        name: ubuntu-latest-build
+
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: windows-latest-build
+
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: macos-latest-build
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          pr_stats_calculator_ubuntu.zip
+          pr_stats_calculator_ubuntu-latest.zip
           pr_stats_calculator_windows.zip
-          pr_stats_calculator_macos.zip
+          pr_stats_calculator_macos-latest.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
