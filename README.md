@@ -56,10 +56,10 @@ Or you can grab the executable from [releases](https://github.com/umuterturk/git
 ### Required Arguments
 
 - `REPOSITORIES`: A list of repositories to analyze in the format `owner/repo`. You can specify multiple repositories by separating them with spaces.
+- `--token` (`-T`): The GitHub token with read access to the repositories. This is required for authentication with the GitHub API. If you don't have a token you can create one from [here](https://github.com/settings/personal-access-tokens/new)
 
 ### Optional Arguments
 
-- `--token` (`-T`): The GitHub token with read access to the repositories. This is required for authentication with the GitHub API.
 - `--days` (`-D`): The number of days to look back from today to fetch PR data. Default is 60 days.
 - `--file` (`-F`): The prefix for the CSV files where raw data and statistics will be saved. Default is `pr_approval_`.
 
