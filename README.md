@@ -47,7 +47,7 @@ To use the PR Approval Time Stats Calculator, run the script with the following 
 python pr_stats_calculator.py [OPTIONS] REPOSITORIES
 ```
 
-Or you can grab the executable from the `dist` folder and run it directly.
+Or you can grab the executable from [releases](https://github.com/umuterturk/github-pr-stats/releases).
 
 ```bash
 ./pr_stats_calculator [OPTIONS] REPOSITORIES
