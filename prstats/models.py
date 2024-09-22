@@ -11,8 +11,8 @@ class PRStats:
     p90_hours: float
     number_of_prs: int
     number_of_distinct_creators: int
-    number_of_distinct_approvers: int
-    number_of_distinct_users: int
+    # number_of_distinct_approvers: int
+    # number_of_distinct_users: int
 
     def to_dict(self) -> Dict[str, Union[str, int, float]]:
         def shorten_float(value):
@@ -24,8 +24,8 @@ class PRStats:
             'std_dev_hours': shorten_float(self.std_dev_hours),
             'p90_hours': shorten_float(self.p90_hours), 'number_of_prs': self.number_of_prs,
             'number_of_distinct_creators': self.number_of_distinct_creators,
-            'number_of_distinct_approvers': self.number_of_distinct_approvers,
-            'number_of_distinct_users': self.number_of_distinct_users
+            # 'number_of_distinct_approvers': self.number_of_distinct_approvers,
+            # 'number_of_distinct_users': self.number_of_distinct_users
         }
 
 
@@ -34,16 +34,15 @@ class RawPRData:
     repository: str
     pr_number: int
     creator: str
-    approver: str
     created_at: str
     closed_at: str
-    approval_time_hours: float
+    merge_time_hours: float
     closing_time_hours: float
 
     def to_dict(self) -> Dict[str, Union[str, int, float]]:
         return {
             'repository': self.repository, 'pr_number': self.pr_number, 'creator': self.creator,
-            'approver': self.approver, 'created_at': self.created_at, 'closed_at': self.closed_at,
-            'approval_time_hours': self.approval_time_hours,
+            'created_at': self.created_at, 'closed_at': self.closed_at,
+            'merge_time_hours': self.merge_time_hours,
             'closing_time_hours': self.closing_time_hours
         }

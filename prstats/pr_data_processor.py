@@ -18,8 +18,8 @@ class PrDataProcessor:
         return [x for x in data if lower_bound <= x <= upper_bound]
 
     def calculate_statistics(
-            self, repo: str, approval_times: List[float], creators: List[str], approvers: List[str]
-            ) -> Optional[PRStats]:
+            self, repo: str, approval_times: List[float], creators: List[str]
+    ) -> Optional[PRStats]:
         filtered_times = self.filter_outliers(approval_times)
         if not filtered_times:
             return None
@@ -32,5 +32,6 @@ class PrDataProcessor:
             p90_hours=np.percentile(filtered_times, 90) / 3600,
             number_of_prs=len(approval_times),
             number_of_distinct_creators=len(set(creators)),
-            number_of_distinct_approvers=len(set(approvers)),
-            number_of_distinct_users=len(set(creators).union(set(approvers))), )
+            # number_of_distinct_approvers=len(set(approvers)),
+            # number_of_distinct_users=len(set(creators).union(set(approvers))),
+        )

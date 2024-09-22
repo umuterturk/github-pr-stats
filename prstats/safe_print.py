@@ -29,38 +29,40 @@ class OperationTable:
         self.table.add_column("Time Spent (s)", justify="center", style="green")
         self.table.add_column("Error", justify="center", style="red")  # Error column
 
-    def display_table(self):
-        with _lock:
-            self.clear_console()
-            self.table = Table(title="Operations Status")
-            self.table.add_column("Operation", justify="center", style="cyan", no_wrap=True)
-            self.table.add_column("Status", justify="center", style="magenta")
-            self.table.add_column("Time Spent (s)", justify="center", style="green")
-            self.table.add_column("Error", justify="center", style="red")
+    def _display_table(self):
+        self.clear_console()
+        self.table = Table(title="Operations Status")
+        self.table.add_column("Operation", justify="center", style="cyan", no_wrap=True)
+        self.table.add_column("Status", justify="center", style="magenta")
+        self.table.add_column("Time Spent (s)", justify="center", style="green")
+        self.table.add_column("Error", justify="center", style="red")
 
-            for op in self.operations:
-                time_spent = self.time_spent[op]
-                time_spent_str = f"{time_spent:.2f}" if time_spent is not None else "N/A"
-                error_msg = self.errors[op] if self.errors[op] is not None else "None"
-                self.table.add_row(op, self.status_icons[op], time_spent_str, error_msg)
+        for op in self.operations:
+            time_spent = self.time_spent[op]
+            time_spent_str = f"{time_spent:.2f}" if time_spent is not None else "N/A"
+            error_msg = self.errors[op] if self.errors[op] is not None else "None"
+            self.table.add_row(op, self.status_icons[op], time_spent_str, error_msg)
 
-            self.console.print(self.table)
+        self.console.print(self.table)
 
     def start_operation(self, operation):
-        self.start_times[operation] = time.time()  # Record start time
-        self.status_icons[operation] = ":hourglass:"  # Set to in-progress icon
-        self.display_table()
+        with _lock:
+            self.start_times[operation] = time.time()  # Record start time
+            self.status_icons[operation] = ":hourglass:"  # Set to in-progress icon
+            self._display_table()
 
     def complete_operation(self, operation):
-        end_time = time.time()
-        self.time_spent[operation] = end_time - self.start_times[operation]  # Calculate time spent
-        self.status_icons[operation] = ":white_check_mark:"  # Set to completed icon
-        self.display_table()
+        with _lock:
+            end_time = time.time()
+            self.time_spent[operation] = end_time - self.start_times[operation]  # Calculate time spent
+            self.status_icons[operation] = ":white_check_mark:"  # Set to completed icon
+            self._display_table()
 
     def handle_error(self, operation, error_message):
-        self.errors[operation] = error_message  # Store the error message
-        self.status_icons[operation] = ":x:"  # Set to error icon
-        self.display_table()
+        with _lock:
+            self.errors[operation] = error_message  # Store the error message
+            self.status_icons[operation] = ":x:"  # Set to error icon
+            self._display_table()
 
     def clear_console(self):
         os.system("cls" if os.name == "nt" else "clear")

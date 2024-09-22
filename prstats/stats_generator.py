@@ -1,3 +1,4 @@
+import concurrent.futures
 import hashlib
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -6,7 +7,6 @@ from random import randint
 from typing import List, Tuple, Dict, Optional
 
 from tabulate import tabulate
-import concurrent.futures
 
 from prstats.csv_writer import CsvWriter
 from prstats.github_adapter import GitHubAdapter
@@ -28,25 +28,23 @@ class PrStatsGenerator:
         self.obfuscating_salt = str(randint(0, 1000000))
         self.operation_table = OperationTable(repos)
 
-
     def calculate_stats_for_repo(self, repo):
         try:
             owner, repo_name = repo.split('/')
             # safe_print(f"Calculating statistics for repository: {repo_name}")
             self.operation_table.start_operation(repo)
 
-            approval_times, pr_count, creators, approvers, raw_pr_data = (
-                self._gather_approval_times(owner, repo_name)
-            )
+            approval_times, pr_count, creators, raw_pr_data = (
+                self._gather_approval_times(owner, repo_name))
             self.csv_writer.write_raw_data(raw_pr_data)
 
             stats = self.pr_data_processor.calculate_statistics(
-                repo_name, approval_times, creators, approvers
+                repo_name, approval_times, creators
             )
+            self.operation_table.complete_operation(repo)
             if stats:
                 self.csv_writer.write_stats(stats)
                 safe_print(f"Finished for {repo_name}")
-                self.operation_table.complete_operation(repo)
                 return stats.to_dict()
             else:
                 return self._empty_stats(repo_name, pr_count)
@@ -66,7 +64,8 @@ class PrStatsGenerator:
         all_repo_stats = []
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_repo = {executor.submit(self.calculate_stats_for_repo, repo): repo for repo in self.repos}
+            future_to_repo = {executor.submit(self.calculate_stats_for_repo, repo): repo for repo in
+                              self.repos}
             for future in concurrent.futures.as_completed(future_to_repo):
                 repo = future_to_repo[future]
                 try:
@@ -80,17 +79,16 @@ class PrStatsGenerator:
         return all_repo_stats
 
     def _gather_approval_times(self, owner, repo_name) -> Tuple[
-        List[int], int, List[str], List[str], List[RawPRData]]:
-        approval_times, closing_times, creators, approvers, raw_pr_data = [], [], [], [], []
+        List[int], int, List[str], List[RawPRData]]:
+        merge_times, closing_times, creators, raw_pr_data = [], [], [], []
         pull_requests = self.github_adapter.get_pull_requests(owner, repo_name)
 
         def process_pr(pr):
-            approval_time, closing_time, approver = self._get_approval_time(owner, repo_name, pr)
-            if approval_time is not None:
-                return approval_time, closing_time, pr['user'][
-                    'login'], approver, self._prepare_raw_data(
-                    pr, approval_time, closing_time, repo_name, approver
-                    )
+            merge_time, closing_time = self._get_approval_time(owner, repo_name, pr)
+            if merge_time is not None:
+                return merge_time, closing_time, pr['user']['login'], self._prepare_raw_data(
+                    pr, merge_time, closing_time, repo_name
+                )
             return None
 
         with ThreadPoolExecutor(max_workers=5) as executor:
@@ -99,37 +97,36 @@ class PrStatsGenerator:
             for future in as_completed(futures):
                 result = future.result()
                 if result:
-                    approval_time, closing_time, creator, approver, raw_data = result
-                    approval_times.append(approval_time)
+                    approval_time, closing_time, creator, raw_data = result
+                    merge_times.append(approval_time)
                     closing_times.append(closing_time)
                     creators.append(creator)
-                    if approver:
-                        approvers.append(approver)
+
                     raw_pr_data.append(raw_data)
 
-        return approval_times, len(pull_requests), creators, approvers, raw_pr_data
+        return merge_times, len(pull_requests), creators, raw_pr_data
 
     def _get_approval_time(self, owner, repo_name, pr):
         if pr['user']['login'].endswith('[bot]'):
-            return None, None, None
+            return None, None
 
         created_at = datetime.strptime(pr['created_at'], '%Y-%m-%dT%H:%M:%SZ')
         if created_at < self.start_date:
-            return None, None, None
+            return None, None
 
         if pr.get('draft'):
             timeline = self.github_adapter.get_pr_timeline(owner, repo_name, pr['number'])
             created_at = self._get_ready_for_review_time(timeline) or created_at
 
-        reviews = self.github_adapter.get_reviews(owner, repo_name, pr['number'])
-        approved_at, approver = self._get_first_approval(reviews)
-
+        # reviews = self.github_adapter.get_reviews(owner, repo_name, pr['number'])
+        # approved_at, approver = self._get_first_approval(reviews)
+        approved_at = datetime.strptime(pr['merged_at'], '%Y-%m-%dT%H:%M:%SZ')
         approval_duration = (approved_at - created_at).total_seconds() if approved_at else None
         closing_duration = (datetime.strptime(
             pr['merged_at'], '%Y-%m-%dT%H:%M:%SZ'
         ) - created_at).total_seconds()
 
-        return approval_duration, closing_duration, approver
+        return approval_duration, closing_duration
 
     @staticmethod
     def _get_ready_for_review_time(timeline):
@@ -153,11 +150,15 @@ class PrStatsGenerator:
 
         return None, None
 
-    def _prepare_raw_data(self, pr:Dict, approval_time:Optional[float], closing_time:Optional[float], repo_name:str, approver:str)->RawPRData:
+    def _prepare_raw_data(
+            self, pr: Dict, approval_time: Optional[float], closing_time: Optional[float],
+            repo_name: str
+            ) -> RawPRData:
         return RawPRData(
-            repository=repo_name, pr_number=pr['number'], creator=self.obfuscate(pr['user']['login']),
-            approver=self.obfuscate(approver) , created_at=pr['created_at'], closed_at=pr['closed_at'],
-            approval_time_hours=approval_time / 3600 if approval_time else 'N/A',
+            repository=repo_name, pr_number=pr['number'],
+            creator=self.obfuscate(pr['user']['login']), created_at=pr['created_at'],
+            closed_at=pr['closed_at'],
+            merge_time_hours=approval_time / 3600 if approval_time else 'N/A',
             closing_time_hours=closing_time / 3600 if closing_time else 'N/A'
         )
 
@@ -166,12 +167,10 @@ class PrStatsGenerator:
             (hashlib.md5(s.encode()).hexdigest() + self.obfuscating_salt).encode()
         ).hexdigest()[:10] if s else None
 
-
     @staticmethod
     def _empty_stats(repo_name, pr_count):
         return {
             'repository': repo_name, 'average_hours': 'N/A', 'median_hours': 'N/A',
             'std_dev_hours': 'N/A', 'p90_hours': 'N/A', 'number_of_prs': pr_count,
-            'number_of_distinct_creators': 0, 'number_of_distinct_approvers': 0,
-            'number_of_distinct_users': 0
+            'number_of_distinct_creators': 0
         }
