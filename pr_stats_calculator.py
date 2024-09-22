@@ -40,15 +40,9 @@ start_date = today - timedelta(days=days_to_look_back)
 start_date_iso = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 if __name__ == "__main__":
-    raw_data_field_names = ['repository', 'pr_number', 'creator', 'approver', 'created_at',
-                            'closed_at', 'approval_time_hours', 'closing_time_hours']
-    stats_field_names = ['repository', 'average_hours', 'median_hours', 'std_dev_hours',
-                         'p90_hours', 'number_of_prs', 'number_of_distinct_creators',
-                         'number_of_distinct_approvers', 'number_of_distinct_users']
 
-    csv_writer = CsvWriter(file_name_prefix, raw_data_field_names, stats_field_names)
+    csv_writer = CsvWriter(file_name_prefix)
     github_adapter = GitHubAdapter(GITHUB_TOKEN, start_date_iso)
     pr_data_processor = PrDataProcessor()
     pr_stats_calculator = PrStatsGenerator(REPOS, csv_writer, github_adapter, pr_data_processor, start_date)
-
     pr_stats_calculator.calculate_approval_time_stats_per_repo()
