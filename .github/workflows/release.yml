@@ -32,7 +32,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile prstats/pr_stats_calculator.py
+        pyinstaller --onefile pr_stats_calculator.py
 
     - name: Archive the build output (Linux & macOS)
       if: matrix.os != 'windows-latest'
